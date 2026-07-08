@@ -1,0 +1,39 @@
+# version: '3.8'
+services:
+  #1. Le Data Lake
+  minio:
+    image: minio/minio
+    container_name: minio-datalake
+    ports:
+      - "9000:9000" # API Port
+      - "9001:9001" # Console UI Port
+    environment:
+      MINIO_ROOT_USER: "admin"
+      MINIO_ROOT_PASSWORD: "password"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - datalake_net
+#2. Le moteur de calcul + Notebook (Compatible Mac M1/M2/M3 & Windows)
+  spark-jupyter:
+    image: jupyter/pyspark-notebook:latest
+    container_name: spark-master
+    ports:
+      - "8888:8888" # Jupyter Lab UI
+      - "4040:4040" # Spark UI (Monitoring jobs)
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=password
+    volumes:
+      - ./work:/home/jovyan/work # Dossier partagé pour sauvegarder leurs notebooks
+    depends_on:
+      - minio
+    networks:
+      - datalake_net
+volumes:
+  minio_data:
+
+networks:
+  datalake_net:
+    driver: bridge
